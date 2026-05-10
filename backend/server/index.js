@@ -664,6 +664,9 @@ const JOIN_ERROR_EVENTS = ["join-error", "join_error"];
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 const hashRoomPassword = (password = "") =>
