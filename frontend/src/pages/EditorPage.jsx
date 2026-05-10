@@ -201,7 +201,10 @@ export default function EditorPage() {
         ].join("")
       : "<!doctype html><html><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body style=\"margin:0;background:#0B0714;color:#e9d5ff;font-family:system-ui;padding:24px;\">Run HTML to render a shared preview.</body></html>"
   );
-  const inviteLink = typeof window === "undefined" ? "" : window.location.href;
+  const inviteLink =
+  typeof window === "undefined"
+    ? ""
+    : `${window.location.origin}/room/${roomId}`;
   const participantUsers = users.length
     ? users
     : [{ id: "current-user", username }];
