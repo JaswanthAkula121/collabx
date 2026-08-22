@@ -24,19 +24,51 @@ require("dotenv").config();
 const PORT = process.env.PORT || 5000;
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
+const ALLOWED_ORIGIN_HOST_PATTERNS = [
+  /^localhost$/,
+  /^127\.0\.0\.1$/,
+  /^0\.0\.0\.0$/,
+  /^192\.168\.\d{1,3}\.\d{1,3}$/,
+  /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/,
+  /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/,
+  /(^|\.)loca\.lt$/,
+  /(^|\.)lhr\.life$/,
+  /(^|\.)trycloudflare\.com$/,
+];
+
+const isAllowedOrigin = (origin = "") => {
+  if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    return true;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    return (
+      ["http:", "https:"].includes(protocol) &&
+      ALLOWED_ORIGIN_HOST_PATTERNS.some((pattern) => pattern.test(hostname))
+    );
+  } catch {
+    return false;
+  }
+};
 
 const app = express();
 
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      callback(null, isAllowedOrigin(origin));
+    },
     credentials: true,
   })
 );
 app.use(express.json({ limit: "1mb" }));
-app.use(express.json());
 
 const executionStates = {};
 const roomLanguageStates = {};
@@ -651,7 +683,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin(origin, callback) {
+      callback(null, isAllowedOrigin(origin));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -664,9 +698,6 @@ const JOIN_ERROR_EVENTS = ["join-error", "join_error"];
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 const hashRoomPassword = (password = "") =>
@@ -793,10 +824,6 @@ app.post("/rooms", async (req, res) => {
     const normalizedRoomId = normalizeValue(roomId).trim();
     const normalizedUsername = normalizeValue(username).trim();
     const normalizedPassword = normalizeValue(password).trim();
-    const roomsTableSchema = await getRoomsTableSchema();
-
-    console.log("CREATE ROOM BODY:", req.body);
-    console.log("ROOMS TABLE SCHEMA:", roomsTableSchema);
 
     if (!normalizedRoomId || !normalizedUsername || !normalizedPassword) {
       return res.status(400).json({
@@ -813,7 +840,7 @@ app.post("/rooms", async (req, res) => {
       DO UPDATE SET
         room_password = EXCLUDED.room_password,
         creator_username = EXCLUDED.creator_username
-      RETURNING room_id, room_password, creator_username
+      RETURNING room_id, creator_username
       `,
       [
         normalizedRoomId,
@@ -822,19 +849,6 @@ app.post("/rooms", async (req, res) => {
       ]
     );
     const insertedRow = insertResult.rows[0];
-
-    const savedRoomResult = await pool.query(
-      `
-      SELECT room_id, room_password, creator_username
-      FROM rooms
-      WHERE room_id = $1
-      `,
-      [normalizedRoomId]
-    );
-    const savedRoom = savedRoomResult.rows[0];
-
-    console.log("INSERTED ROW:", insertedRow);
-    console.log("SAVED ROOM:", savedRoom);
 
     res.json({
       success: true,
@@ -904,7 +918,6 @@ io.on("connection", (socket) => {
       const normalizedUsername = normalizeValue(username).trim();
       const normalizedPassword = normalizeValue(password).trim();
 
-      console.log("JOIN ROOM PAYLOAD:", payload);
       console.log("SOCKET JOIN:", {
         roomId: normalizedRoomId,
         username: normalizedUsername,

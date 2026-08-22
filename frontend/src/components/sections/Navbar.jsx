@@ -40,6 +40,8 @@ function NavLink({ label }) {
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [serverOnline, setServerOnline] = useState(false);
+  const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -51,6 +53,27 @@ export default function Navbar() {
     return () =>
       window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/health`);
+        if (isActive) setServerOnline(response.ok);
+      } catch {
+        if (isActive) setServerOnline(false);
+      }
+    };
+
+    checkServer();
+    const intervalId = window.setInterval(checkServer, 10000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [apiUrl]);
 
   return (
     <motion.nav
@@ -147,19 +170,31 @@ export default function Navbar() {
         <div
           className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium"
           style={{
-            background: "rgba(34,197,94,0.08)",
+            background: serverOnline
+              ? "rgba(34,197,94,0.08)"
+              : "rgba(239,68,68,0.08)",
             border:
-              "1px solid rgba(34,197,94,0.2)",
-            color: "#4ade80",
+              serverOnline
+                ? "1px solid rgba(34,197,94,0.2)"
+                : "1px solid rgba(239,68,68,0.2)",
+            color: serverOnline ? "#4ade80" : "#f87171",
           }}
         >
           <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                serverOnline ? "bg-green-400" : "bg-red-400"
+              }`}
+            />
 
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+            <span
+              className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                serverOnline ? "bg-green-400" : "bg-red-400"
+              }`}
+            />
           </span>
 
-          Server Online
+          {serverOnline ? "Server Online" : "Server Offline"}
         </div>
 
         {/* CTA button */}

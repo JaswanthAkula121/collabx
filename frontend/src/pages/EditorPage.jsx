@@ -6,8 +6,14 @@ import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { Copy, QrCode, UserRound, X } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL;
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  (typeof window === "undefined" ? "" : window.location.origin);
+const PUBLIC_APP_URL = (import.meta.env.VITE_PUBLIC_APP_URL || "").replace(
+  /\/+$/,
+  ""
+);
 
 const socket = io(SOCKET_URL, {
   autoConnect: false,
@@ -201,10 +207,10 @@ export default function EditorPage() {
         ].join("")
       : "<!doctype html><html><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body style=\"margin:0;background:#0B0714;color:#e9d5ff;font-family:system-ui;padding:24px;\">Run HTML to render a shared preview.</body></html>"
   );
-  const inviteLink =
-  typeof window === "undefined"
-    ? ""
-    : `${window.location.origin}/room/${roomId}`;
+  const inviteBaseUrl =
+    PUBLIC_APP_URL ||
+    (typeof window === "undefined" ? "" : window.location.origin);
+  const inviteLink = inviteBaseUrl ? `${inviteBaseUrl}/room/${roomId}` : "";
   const participantUsers = users.length
     ? users
     : [{ id: "current-user", username }];
@@ -375,7 +381,7 @@ useEffect(() => {
       password,
     });
 
-    socket.emit("get_execution_state", { roomId });
+    socket.emit("get_execution_state", roomId);
 
     return () => {
       if (languageSyncTimeoutRef.current) {
@@ -617,12 +623,6 @@ const startSidebarResize = () => {
     setIsVerifyingRoom(true);
 
     try {
-      console.log({
-        roomId,
-        username: nextUsername,
-        password: nextPassword,
-      });
-
       const response = await fetch(`${API_URL}/rooms/verify`, {
         method: "POST",
         headers: {
@@ -704,7 +704,7 @@ const startSidebarResize = () => {
     if (!hasJoinedRoom) return;
 
     socket.emit("get_code", roomId);
-    socket.emit("get_execution_state", { roomId });
+    socket.emit("get_execution_state", roomId);
 
     socket.on("load_code", (savedCode) => {
       if (savedCode) {
@@ -1198,7 +1198,7 @@ className="shrink-0 border-l border-white/10 bg-[#120D1F] p-4 flex flex-col">
               <div className="space-y-3">
                 {users.map((user) => (
                   <div
-                    key={user.id}
+                    key={user.socketId || user.id || user.username}
                     className="flex items-center gap-3"
                   >
                     <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center font-semibold">

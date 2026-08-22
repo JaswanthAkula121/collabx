@@ -8,7 +8,7 @@ import { ButtonPrimary, ButtonOutline } from "../ui/Button";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export default function HeroForms() {
   const navigate = useNavigate();
@@ -56,8 +56,6 @@ export default function HeroForms() {
       });
 
       const data = await response.json();
-
-      console.log("CREATE ROOM RESPONSE:", data);
 
       if (!response.ok) {
         toast.error(data?.message || "Could not create room.");
@@ -117,8 +115,6 @@ export default function HeroForms() {
       );
 
       const data = await response.json();
-
-      console.log("VERIFY RESPONSE:", data);
 
       if (!response.ok) {
         toast.error(data?.message || "Incorrect room password");

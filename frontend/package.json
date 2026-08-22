@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
+    "tunnel": "npx localtunnel --port 5173 --subdomain collabx-jaswa",
     "server": "node server/index.js",
     "build": "node scripts/build.mjs",
     "preview": "vite preview"
