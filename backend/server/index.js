@@ -39,6 +39,10 @@ const ALLOWED_ORIGIN_HOST_PATTERNS = [
   /(^|\.)loca\.lt$/,
   /(^|\.)lhr\.life$/,
   /(^|\.)trycloudflare\.com$/,
+  /(^|\.)vercel\.app$/,
+  /(^|\.)railway\.app$/,
+  /(^|\.)up\.railway\.app$/,
+  /(^|\.)onrender\.com$/,
 ];
 
 const isAllowedOrigin = (origin = "") => {
@@ -805,6 +809,19 @@ const verifyRoomPassword = async (roomId, password = "", username = "") => {
 
 const initializeDatabase = async () => {
   try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rooms (
+        room_id TEXT PRIMARY KEY,
+        code TEXT DEFAULT '',
+        room_password TEXT,
+        creator_username TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      ALTER TABLE rooms
+      ADD COLUMN IF NOT EXISTS code TEXT DEFAULT ''
+    `);
     await pool.query(`
       ALTER TABLE rooms
       ADD COLUMN IF NOT EXISTS room_password TEXT
